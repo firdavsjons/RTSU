@@ -1,0 +1,17 @@
+.env
+*.pem
+*.key
+*.dump
+*.bak
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+*.exe
+node_modules/
+dist/
+build/
+.idea/
+.vscode/
+.DS_Store
