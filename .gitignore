@@ -1,0 +1,17 @@
+# окружение и секреты
+venv/
+.env
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# редактор и система
+.vscode/
+.idea/
+.DS_Store
+
+# логи
+logs/
+*.log
