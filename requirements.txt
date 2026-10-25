@@ -3,5 +3,6 @@ uvicorn
 alembic
 psycopg2-binary
 python-dotenv
+python-multipart
 PyJWT
 argon2-cffi

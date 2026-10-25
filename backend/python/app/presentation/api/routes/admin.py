@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.application.use_cases.create_student import CreateStudentUseCase
 from app.domain.entities.user import User
@@ -8,6 +8,7 @@ from app.presentation.api.dependencies import (
     get_create_student_use_case,
     require_roles,
 )
+from app.presentation.api.request_body import parse_request_body, request_body_openapi
 from app.presentation.api.schemas.user import CreateStudentRequest, StudentResponse
 from app.application.use_cases.create_teacher import CreateTeacherUseCase
 from app.presentation.api.dependencies import get_create_teacher_use_case
@@ -17,13 +18,17 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.post(
-    "/students", response_model=StudentResponse, status_code=status.HTTP_201_CREATED
+    "/students",
+    response_model=StudentResponse,
+    status_code=status.HTTP_201_CREATED,
+    openapi_extra=request_body_openapi(CreateStudentRequest),
 )
-def create_student(
-    data: CreateStudentRequest,
+async def create_student(
+    request: Request,
     _: User = Depends(require_roles(Role.ADMIN)),
     use_case: CreateStudentUseCase = Depends(get_create_student_use_case),
 ):
+    data = await parse_request_body(request, CreateStudentRequest)
     try:
         result = use_case.execute(
             data.login, data.password, data.full_name, data.course, data.direction
@@ -44,13 +49,17 @@ def create_student(
     )
 
 @router.post(
-    "/teachers", response_model=TeacherResponse, status_code=status.HTTP_201_CREATED
+    "/teachers",
+    response_model=TeacherResponse,
+    status_code=status.HTTP_201_CREATED,
+    openapi_extra=request_body_openapi(CreateTeacherRequest),
 )
-def create_teacher(
-    data: CreateTeacherRequest,
+async def create_teacher(
+    request: Request,
     _: User = Depends(require_roles(Role.ADMIN)),
     use_case: CreateTeacherUseCase = Depends(get_create_teacher_use_case),
 ):
+    data = await parse_request_body(request, CreateTeacherRequest)
     try:
         result = use_case.execute(
             data.login, data.password, data.full_name, data.department, data.position
