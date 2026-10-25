@@ -1,5 +1,7 @@
+<<<<<<< HEAD
 # окружение и секреты
 venv/
+.venv/
 .env
 
 # python
@@ -15,3 +17,4 @@ __pycache__/
 # логи
 logs/
 *.log
+>>>>>>> c92dfeb5783655240dacb6f6a83731cb504016af
