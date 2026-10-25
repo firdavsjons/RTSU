@@ -34,14 +34,15 @@
 ## Структура проекта
 
 ```
-app/
+backend/python/app/
 ├── domain/          # ядро: сущности, роли, ошибки, интерфейсы репозиториев
 ├── application/     # сценарии (use cases) и интерфейсы хешера и токенов
 ├── infrastructure/  # PostgreSQL, argon2, JWT
 ├── presentation/    # роутеры FastAPI, схемы, зависимости
 ├── config.py        # настройки из .env
 └── main.py          # точка входа
-migrations/          # миграции Alembic
+backend/python/tests/ # тесты
+migrations/          # миграции Alembic в корне проекта
 scripts/             # служебные скрипты (create_admin.py)
 ```
 ## Что лежит в каждом слое
@@ -96,47 +97,48 @@ scripts/             # служебные скрипты (create_admin.py)
 
 ## Запуск с нуля
 
-**1. Клонировать и создать окружение**
+**1. Создать Python-окружение и установить зависимости**
 ```
-git clone https://github.com/firdavsjons/RTSU.git
-cd RTSU
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
-Если PowerShell запрещает скрипты, один раз выполни:
-`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
 
-**2. Создать `.env` в корне проекта** (по образцу `.env.example`)
-```
-DATABASE_URL=postgresql+psycopg2://postgres:ПАРОЛЬ@localhost:5432/university_db
-SECRET_KEY=длинная_случайная_строка
-```
-Ключ можно сгенерировать так:
+**2. Настроить `.env` в корне проекта** по образцу `.env.example`. Укажи уникальный `SECRET_KEY`; его можно сгенерировать так:
 `python -c "import secrets; print(secrets.token_hex(32))"`
 
-**3. Создать пустую базу** `university_db` в PostgreSQL (через DataGrip или pgAdmin).
+`DATABASE_URL` указывает приложению, к какой базе подключаться. `POSTGRES_DB` задаёт имя базы, которую создаёт PostgreSQL в Docker при первой инициализации тома. При использовании уже установленного PostgreSQL база должна существовать отдельно. Учётные данные и имя базы в `DATABASE_URL` должны совпадать с настройками сервера.
+
+**3. Подготовить PostgreSQL на порту 5432.** Выбери один вариант:
+
+- Если PostgreSQL уже запущен локально и доступен на порту `5432`, создай в нём базу с именем из `POSTGRES_DB` (если её ещё нет). Docker для этого не нужен.
+- Если используешь Docker Compose, порт `5432` на компьютере должен быть свободен. Команда создаст контейнер PostgreSQL и базу `POSTGRES_DB` при первом запуске:
+```
+docker compose up -d db
+```
+Не запускай Compose с публикацией порта `5432`, пока другой PostgreSQL уже занимает этот порт.
 
 **4. Накатить миграции**
 ```
 alembic upgrade head
 ```
+Миграция создаст таблицы приложения. Сам FastAPI при запуске базу и таблицы не создаёт.
 
 **5. Создать первого админа**
 ```
-python -m scripts.create_admin admin MyPass123 "Главный Админ"
+PYTHONPATH=backend/python .venv/bin/python -m scripts.create_admin admin MyPass123 "Главный Админ"
 ```
 
 **6. Запустить сервер**
 ```
-uvicorn app.main:app --reload
+.venv/bin/uvicorn --app-dir backend/python app.main:app --reload
 ```
 
 ## Как перезапустить
 
 - Сервер запущен с `--reload`, поэтому при сохранении файла он перезапускается сам.
-- Остановить: `Ctrl+C` в терминале. Запустить снова: `uvicorn app.main:app --reload`.
-- Если терминал закрыли, сначала активируй окружение: `venv\Scripts\activate`, и запускай команду из корня проекта (где лежит папка `app`).
+- Остановить: `Ctrl+C` в терминале. Запустить снова из корня проекта: `.venv/bin/uvicorn --app-dir backend/python app.main:app --reload`.
+- Если терминал закрыли, открой новый в корне проекта и выполни ту же команду. Активация окружения не нужна, так как путь явно указывает на Python проекта.
 - Если появились новые миграции после `git pull`: `alembic upgrade head`.
 
 ## Быстрая проверка в Postman
@@ -158,8 +160,11 @@ uvicorn app.main:app --reload
 
 ## Быстрый старт
 cp .env.example .env
+# Запусти Docker PostgreSQL только если порт 5432 свободен;
+# для уже работающего локального PostgreSQL этот шаг пропусти.
 docker compose up -d db
-docker compose run --rm dbmate up
+alembic upgrade head
+uvicorn --app-dir backend/python app.main:app --reload
 
 ## Правила
 - Ветка main защищена, только Pull Request
